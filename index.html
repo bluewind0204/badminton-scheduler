@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>羽球雙打對戰排程器 V2.4.0 (無固定分組)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .custom-check {
+      accent-color: #059669;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen p-3 sm:p-6 lg:p-8">
+
+  <div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- Header Section -->
+    <header class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div class="flex items-center gap-3.5">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white text-2xl shadow-sm shrink-0">
+          🏸
+        </div>
+        <div>
+          <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">羽球雙打對戰排程器</h1>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                V2.4.0 (無固定分組)
+              </span>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                更新：2026-10-16
+              </span>
+            </div>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">雙場地嚴格禁止連續兩場出賽・單雙場地切換・出場次數平衡・即時完賽勾選</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 w-full sm:w-auto justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 flex-wrap">
+        <button type="button" onclick="clearAllPlayers()" class="px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors border border-slate-200 flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+          清空名單
+        </button>
+      </div>
+    </header>
+
+    <!-- Player Input Section -->
+    <section class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <span>👤 參賽球員名單</span>
+          </h2>
+          <p class="text-xs text-slate-600 mt-1">
+            <strong>雙場地零連打條件</strong>：為確保上輪出賽者下輪 100% 輪空，總人數建議至少16人。
+          </p>
+        </div>
+        <div class="flex items-center gap-2 self-start sm:self-center">
+          <span class="text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full" id="playerCountBadge">
+            共 8 人
+          </span>
+        </div>
+      </div>
+
+      <!-- Quick Batch Paste -->
+      <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+        <div class="flex items-center justify-between mb-2">
+          <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+            <span>📋 批次快速貼上（從 LINE 群組複製人名，以換行、逗號或空格分隔）</span>
+          </label>
+          <button type="button" onclick="applyBatchPlayers()" class="text-xs px-2.5 py-1 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-semibold transition-colors">
+            套用匯入名單
+          </button>
+        </div>
+        <textarea id="batchInput" rows="2" placeholder="例如：志明 春嬌 小明 小華 大華 阿強 阿倫 冠宇 筱涵 小美 建宏 怡君 子豪 雅婷 家豪 淑芬" class="w-full text-xs sm:text-sm p-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none placeholder:text-slate-400"></textarea>
+      </div>
+
+      <!-- Individual Player Grid -->
+      <div id="playerGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 pt-1">
+        <!-- Rendered via JS -->
+      </div>
+
+      <!-- Action & Scheduling Controls -->
+      <div class="mt-4 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-4 border-t border-slate-100">
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="addPlayerSlot()" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border-2 border-dashed border-emerald-300 text-emerald-700 hover:bg-emerald-50 font-semibold text-xs sm:text-sm transition-all">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            新增一位球員
+          </button>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+          <div class="flex items-center justify-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm">
+            <label for="matchesPerPerson" class="font-medium text-slate-600 shrink-0">每人預計出賽：</label>
+            <input type="number" id="matchesPerPerson" min="1" max="20" value="4" class="w-12 text-center py-1 border border-slate-300 rounded-lg text-sm font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none" oninput="updateMathPrediction()">
+            <span class="text-xs text-slate-500 shrink-0">場</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="generateSchedule('single')" class="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-1.5">
+              <span>🏸</span> 自動排列單場地賽程
+            </button>
+            <button type="button" onclick="generateSchedule('double')" class="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-1.5">
+              <span>⚡</span> 自動排列雙場地賽程 (禁止連打)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Math Prediction Banner -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-200 gap-1.5">
+        <span id="mathPredictionText" class="font-medium">名單準備就緒，請點擊上方按鈕開始排程...</span>
+        <span id="mathPredictionBadge" class="font-bold shrink-0 text-emerald-700">雙場地模式：嚴格禁止連續兩場出賽</span>
+      </div>
+
+      <!-- Error Toast -->
+      <div id="errorBox" class="hidden p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm rounded-xl flex items-center gap-2">
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"></circle><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01"></path></svg>
+        <span id="errorMessage"></span>
+      </div>
+    </section>
+
+    <!-- Schedule Results Section -->
+    <section id="resultsSection" class="hidden space-y-6">
+
+      <!-- Round-based Match Cards Container -->
+      <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-4 border-b border-slate-100 gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-base sm:text-lg font-bold text-slate-900" id="scheduleViewTitle">🏟️ 對戰場次順序表</h2>
+              <span id="modeBadge" class="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">雙場地模式</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5" id="scheduleViewSubtitle">已啟動跨輪防連打機制，點擊完賽 Checkbox 可即時劃線標記</p>
+          </div>
+          
+          <div class="flex items-center gap-2 self-start sm:self-center flex-wrap">
+            <button type="button" onclick="copyScheduleToLine()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors border border-slate-200">
+              <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+              一鍵複製賽程 (適合LINE)
+            </button>
+            <span id="totalMatchesBadge" class="text-xs font-bold px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full">
+              共 0 場
+            </span>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-5">
+          <div class="flex items-center justify-between text-xs font-bold mb-2 text-slate-700">
+            <span class="flex items-center gap-1.5">
+              <span>賽程完成進度</span>
+              <span id="progressSummaryText" class="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full text-[11px]">0 / 0 場</span>
+            </span>
+            <span id="progressPercentText" class="text-emerald-600 font-extrabold text-sm">0%</span>
+          </div>
+          <div class="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
+            <div id="progressBarFill" class="bg-emerald-500 h-full rounded-full transition-all duration-300" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- Schedule Items Container -->
+        <div id="roundList" class="space-y-4"></div>
+      </div>
+
+      <!-- Player Statistics Table -->
+      <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200">
+        <div class="pb-3 mb-3 border-b border-slate-100">
+          <h2 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <span>📊 個人出賽次數與搭檔統計看板</span>
+          </h2>
+          <p class="text-xs text-slate-500 mt-0.5">即時追蹤每位球員排定出賽、已完賽、剩餘場次、連打次數與搭檔過名單</p>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs sm:text-sm">
+            <thead class="text-[11px] uppercase bg-slate-50 text-slate-500 border-b border-slate-200 font-bold">
+              <tr>
+                <th class="py-3 px-3 sm:px-4">球員姓名</th>
+                <th class="py-3 px-2 sm:px-3 text-center">排定出賽</th>
+                <th class="py-3 px-2 sm:px-3 text-center text-emerald-700">已完賽</th>
+                <th class="py-3 px-2 sm:px-3 text-center text-amber-700">剩餘待打</th>
+                <th class="py-3 px-2 sm:px-3 text-center">連打次數</th>
+                <th class="py-3 px-3 sm:px-4">曾搭檔球友</th>
+                <th class="py-3 px-2 sm:px-3 text-center">均等狀態</th>
+              </tr>
+            </thead>
+            <tbody id="playerStatsBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Copy Feedback Notification Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none bg-slate-900 text-white text-xs sm:text-sm font-semibold px-4 py-3 rounded-xl shadow-lg flex items-center gap-2">
+      <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+      <span id="toastMessage">已成功複製賽程到剪貼簿！</span>
+    </div>
+
+  </div>
+
+  <script>
+    let players = [];
+    let currentMode = 'double';
+    let scheduleData = [];
+    let playerStatsMeta = {};
+
+    function init() {
+      // 預設建立 8 格空白輸入格
+      players = [];
+      for (let i = 0; i < 8; i++) {
+        players.push({
+          id: 'p_' + i + '_' + Date.now(),
+          name: ''
+        });
+      }
+      renderPlayerInputs();
+    }
+
+    function renderPlayerInputs() {
+      const grid = document.getElementById('playerGrid');
+      grid.innerHTML = '';
+
+      players.forEach((player, idx) => {
+        const slot = document.createElement('div');
+        slot.className = 'flex items-center gap-1.5 bg-slate-50 p-1.5 rounded-xl border border-slate-200 focus-within:border-emerald-500 focus-within:bg-white transition-all';
+        slot.innerHTML = `
+          <span class="text-[11px] font-bold text-slate-400 w-5 text-center shrink-0">${idx + 1}</span>
+          <input type="text" value="${escapeHtml(player.name)}" placeholder="球員 ${idx + 1}"
+            oninput="updatePlayerName(${idx}, this.value)"
+            class="w-full text-xs sm:text-sm bg-transparent outline-none font-medium text-slate-800 placeholder:text-slate-400">
+          <button type="button" onclick="removePlayerSlot(${idx})" class="text-slate-300 hover:text-rose-500 p-1 rounded-md transition-colors" title="刪除此球員">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        `;
+        grid.appendChild(slot);
+      });
+
+      const validCount = players.filter(p => p.name.trim().length > 0).length;
+      document.getElementById('playerCountBadge').innerText = `已填 ${validCount} / 共 ${players.length} 格`;
+      updateMathPrediction();
+    }
+
+    function addPlayerSlot(initialName = '') {
+      players.push({
+        id: 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        name: initialName
+      });
+      renderPlayerInputs();
+    }
+
+    function removePlayerSlot(idx) {
+      if (players.length <= 4) {
+        showError('雙打比賽至少需要保留 4 位球員格子！');
+        return;
+      }
+      clearError();
+      players.splice(idx, 1);
+      renderPlayerInputs();
+    }
+
+    function updatePlayerName(idx, newName) {
+      if (players[idx]) {
+        players[idx].name = newName;
+        const validCount = players.filter(p => p.name.trim().length > 0).length;
+        document.getElementById('playerCountBadge').innerText = `已填 ${validCount} / 共 ${players.length} 格`;
+        updateMathPrediction();
+      }
+    }
+
+    function clearAllPlayers() {
+      clearError();
+      players = [];
+      for (let i = 0; i < 8; i++) {
+        players.push({
+          id: 'p_' + i + '_' + Date.now(),
+          name: ''
+        });
+      }
+      document.getElementById('batchInput').value = '';
+      document.getElementById('resultsSection').classList.add('hidden');
+      scheduleData = [];
+      renderPlayerInputs();
+      showToast('名單已清空，已重置為 8 格空白欄位');
+    }
+
+    function applyBatchPlayers() {
+      clearError();
+      const raw = document.getElementById('batchInput').value.trim();
+      if (!raw) {
+        showError('請在貼上框中輸入球員名單！');
+        return;
+      }
+
+      const names = raw.split(/[\n,，、\s]+/).map(n => n.trim()).filter(n => n.length > 0);
+      if (names.length < 4) {
+        showError('雙打至少需要 4 位球員！目前解析出 ' + names.length + ' 位');
+        return;
+      }
+
+      players = names.map((name, i) => ({
+        id: 'p_batch_' + i + '_' + Date.now(),
+        name: name
+      }));
+
+      renderPlayerInputs();
+      showToast(`已成功匯入 ${names.length} 位球員名單！`);
+    }
+
+    function updateMathPrediction() {
+      const activeNames = players.filter(p => p.name.trim().length > 0);
+      const count = activeNames.length;
+      const targetPerPerson = parseInt(document.getElementById('matchesPerPerson').value, 10) || 4;
+      const text = document.getElementById('mathPredictionText');
+      const badge = document.getElementById('mathPredictionBadge');
+
+      if (count < 4) {
+        text.innerText = '雙打比賽請至少輸入 4 位球員姓名';
+        badge.className = 'text-rose-600 font-bold shrink-0';
+        badge.innerText = '⚠️ 人數不足 4 人';
+        return;
+      }
+
+      const singleMatches = Math.round((count * targetPerPerson) / 4);
+      const dualRounds = count >= 8 ? Math.round((count * targetPerPerson) / 8) : 0;
+
+      text.innerText = `目前名單：${count} 人，每人預計打 ${targetPerPerson} 場 ➔ 【單場】約 ${singleMatches} 場 ｜ 【雙場】約 ${dualRounds} 輪 (${dualRounds * 2}場)`;
+
+      if (count >= 16) {
+        badge.className = 'text-emerald-700 font-bold shrink-0';
+        badge.innerText = '✨ 人數 ≥ 16 人：雙場地 100% 絕對禁止連續兩場出賽！';
+      } else if (count >= 12) {
+        badge.className = 'text-amber-700 font-bold shrink-0';
+        badge.innerText = '⚠️ 12~15 人：每輪需 8 人，因輪空不足 8 人無法完全零連打，已啟用打二休一平攤';
+      } else if (count >= 8) {
+        badge.className = 'text-amber-700 font-bold shrink-0';
+        badge.innerText = '⚠️ 8~11 人：雙場地需多人連續出賽';
+      } else {
+        badge.className = 'text-rose-600 font-bold shrink-0';
+        badge.innerText = '⚠️ 未滿 8 人：僅支援單場地排程';
+      }
+    }
+
+    function showError(msg) {
+      const box = document.getElementById('errorBox');
+      document.getElementById('errorMessage').innerText = msg;
+      box.classList.remove('hidden');
+    }
+
+    function clearError() {
+      document.getElementById('errorBox').classList.add('hidden');
+    }
+
+    function generateSchedule(mode) {
+      clearError();
+      currentMode = mode;
+
+      const validPlayers = players.map(p => ({ id: p.id, name: p.name.trim() })).filter(p => p.name.length > 0);
+
+      const nameSet = new Set(validPlayers.map(p => p.name));
+      if (nameSet.size !== validPlayers.length) {
+        showError('檢測到重複的球員姓名，請加上別稱以利區分（例如：大明、小明）');
+        return;
+      }
+
+      if (mode === 'single' && validPlayers.length < 4) {
+        showError('單場地雙打每場需要 4 位球員，請至少填寫 4 人！');
+        return;
+      }
+
+      if (mode === 'double' && validPlayers.length < 8) {
+        showError('雙場地同時開打每輪需要 8 位球員，請至少填寫 8 人（或改選單場地模式）！');
+        return;
+      }
+
+      // 嚴格零連打數學防呆
+      if (mode === 'double' && validPlayers.length < 16) {
+        const goOn = confirm(
+          `【提示】為確保上輪出賽者下輪 100% 輪空，總人數建議至少16人。\n\n目前填寫人數為 ${validPlayers.length} 人，每輪 8 人在場，因此下一輪必定會有人需要接續出賽。\n\n系統將自動套用「嚴格打二休一、零 3 連打、平攤連打次數」進行排程，是否繼續？`
+        );
+        if (!goOn) return;
+      }
+
+      const targetPerPerson = Math.max(1, parseInt(document.getElementById('matchesPerPerson').value, 10) || 4);
+
+      if (mode === 'single') {
+        buildSingleSchedule(validPlayers, targetPerPerson);
+      } else {
+        buildDualScheduleStrict(validPlayers, targetPerPerson);
+      }
+
+      renderScheduleView(validPlayers);
+      updateProgressAndStats(validPlayers);
+
+      document.getElementById('resultsSection').classList.remove('hidden');
+      document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    /* Single Court Scheduling Engine */
+    function buildSingleSchedule(validPlayers, targetPerPerson) {
+      const N = validPlayers.length;
+      const totalMatches = Math.max(1, Math.round((N * targetPerPerson) / 4));
+
+      const playCounts = {};
+      const partnerHistory = {};
+      const consecutivePlays = {};
+      const consecutiveStreak = {};
+
+      validPlayers.forEach(p => {
+        playCounts[p.id] = 0;
+        partnerHistory[p.id] = new Set();
+        consecutivePlays[p.id] = 0;
+        consecutiveStreak[p.id] = 0;
+      });
+
+      const rounds = [];
+      let prevMatchPlayerIds = new Set();
+
+      for (let m = 0; m < totalMatches; m++) {
+        const sorted = [...validPlayers].sort((a, b) => {
+          const aPlayed = prevMatchPlayerIds.has(a.id) ? 1 : 0;
+          const bPlayed = prevMatchPlayerIds.has(b.id) ? 1 : 0;
+          if (aPlayed !== bPlayed) return aPlayed - bPlayed;
+
+          if (playCounts[a.id] !== playCounts[b.id]) {
+            return playCounts[a.id] - playCounts[b.id];
+          }
+          return consecutivePlays[a.id] - consecutivePlays[b.id];
+        });
+
+        const active4 = sorted.slice(0, 4);
+        const activeIds = new Set(active4.map(p => p.id));
+        const restingList = validPlayers.filter(p => !activeIds.has(p.id));
+
+        const warnings = [];
+        active4.forEach(p => {
+          if (prevMatchPlayerIds.has(p.id)) {
+            warnings.push(p.name);
+            consecutivePlays[p.id]++;
+            consecutiveStreak[p.id]++;
+          } else {
+            consecutiveStreak[p.id] = 1;
+          }
+          playCounts[p.id]++;
+        });
+
+        restingList.forEach(p => {
+          consecutiveStreak[p.id] = 0;
+        });
+
+        const pairing = getBestPairingFor4(active4, partnerHistory);
+        recordPartners(pairing.t1, pairing.t2, partnerHistory);
+
+        rounds.push({
+          roundNum: m + 1,
+          courts: [
+            { courtNum: 1, t1: pairing.t1, t2: pairing.t2, completed: false }
+          ],
+          restings: restingList,
+          warnings: warnings
+        });
+
+        prevMatchPlayerIds = activeIds;
+      }
+
+      scheduleData = rounds;
+      playerStatsMeta = { playCounts, consecutivePlays, partnerHistory };
+    }
+
+    /* Dual Court Strict No-Consecutive Scheduling Engine */
+    function buildDualScheduleStrict(validPlayers, targetPerPerson) {
+      const N = validPlayers.length;
+      const totalRounds = Math.max(1, Math.round((N * targetPerPerson) / 8));
+
+      const playCounts = {};
+      const partnerHistory = {};
+      const consecutivePlays = {};
+      const consecutiveStreak = {};
+
+      validPlayers.forEach(p => {
+        playCounts[p.id] = 0;
+        partnerHistory[p.id] = new Set();
+        consecutivePlays[p.id] = 0;
+        consecutiveStreak[p.id] = 0;
+      });
+
+      const rounds = [];
+      let prevRoundPlayerIds = new Set();
+
+      for (let r = 0; r < totalRounds; r++) {
+        const sorted = [...validPlayers].sort((a, b) => {
+          // 關鍵第一規則：上一輪出賽者全面後置。若人數 >= 16，前 8 名必來自剛休息的人（達成 100% 零連打）
+          const aPlayedPrev = prevRoundPlayerIds.has(a.id) ? 1 : 0;
+          const bPlayedPrev = prevRoundPlayerIds.has(b.id) ? 1 : 0;
+          if (aPlayedPrev !== bPlayedPrev) return aPlayedPrev - bPlayedPrev;
+
+          // 關鍵第二規則：若人數 < 16 不得不連打時，嚴格禁止 3 連打（連打 2 場者強制退後）
+          const aOver = consecutiveStreak[a.id] >= 2 ? 1 : 0;
+          const bOver = consecutiveStreak[b.id] >= 2 ? 1 : 0;
+          if (aOver !== bOver) return aOver - bOver;
+
+          // 關鍵第三規則：累計總場次少者優先
+          if (playCounts[a.id] !== playCounts[b.id]) {
+            return playCounts[a.id] - playCounts[b.id];
+          }
+
+          // 關鍵第四規則：累計連打次數少者優先（平攤連打次數）
+          if (consecutivePlays[a.id] !== consecutivePlays[b.id]) {
+            return consecutivePlays[a.id] - consecutivePlays[b.id];
+          }
+
+          return Math.random() - 0.5;
+        });
+
+        const active8 = sorted.slice(0, 8);
+        const activeIds = new Set(active8.map(p => p.id));
+        const restingList = validPlayers.filter(p => !activeIds.has(p.id));
+
+        const warnings = [];
+        active8.forEach(p => {
+          if (prevRoundPlayerIds.has(p.id)) {
+            warnings.push(p.name);
+            consecutivePlays[p.id]++;
+            consecutiveStreak[p.id]++;
+          } else {
+            consecutiveStreak[p.id] = 1;
+          }
+          playCounts[p.id]++;
+        });
+
+        restingList.forEach(p => {
+          consecutiveStreak[p.id] = 0;
+        });
+
+        const courtAssignment = split8IntoCourts(active8, partnerHistory);
+        recordPartners(courtAssignment.c1.t1, courtAssignment.c1.t2, partnerHistory);
+        recordPartners(courtAssignment.c2.t1, courtAssignment.c2.t2, partnerHistory);
+
+        rounds.push({
+          roundNum: r + 1,
+          courts: [
+            { courtNum: 1, t1: courtAssignment.c1.t1, t2: courtAssignment.c1.t2, completed: false },
+            { courtNum: 2, t1: courtAssignment.c2.t1, t2: courtAssignment.c2.t2, completed: false }
+          ],
+          restings: restingList,
+          warnings: warnings
+        });
+
+        prevRoundPlayerIds = activeIds;
+      }
+
+      scheduleData = rounds;
+      playerStatsMeta = { playCounts, consecutivePlays, partnerHistory };
+    }
+
+    function split8IntoCourts(active8, partnerHistory) {
+      let bestScore = Infinity;
+      let bestAssignment = null;
+
+      const rest = active8.slice(1);
+      for (let i = 0; i < rest.length; i++) {
+        for (let j = i + 1; j < rest.length; j++) {
+          for (let k = j + 1; k < rest.length; k++) {
+            const c1Players = [active8[0], rest[i], rest[j], rest[k]];
+            const c1Set = new Set(c1Players.map(p => p.id));
+            const c2Players = active8.filter(p => !c1Set.has(p.id));
+
+            const m1 = getBestPairingFor4(c1Players, partnerHistory);
+            const m2 = getBestPairingFor4(c2Players, partnerHistory);
+            const totalCost = m1.cost + m2.cost;
+
+            if (totalCost < bestScore) {
+              bestScore = totalCost;
+              bestAssignment = { c1: m1, c2: m2 };
+            }
+          }
+        }
+      }
+      return bestAssignment;
+    }
+
+    function getBestPairingFor4(p4, partnerHistory) {
+      const combos = [
+        { t1: [p4[0], p4[1]], t2: [p4[2], p4[3]] },
+        { t1: [p4[0], p4[2]], t2: [p4[1], p4[3]] },
+        { t1: [p4[0], p4[3]], t2: [p4[1], p4[2]] }
+      ];
+
+      let best = combos[0];
+      let minCost = Infinity;
+
+      combos.forEach(c => {
+        let cost = 0;
+        if (partnerHistory[c.t1[0].id].has(c.t1[1].id)) cost += 15;
+        if (partnerHistory[c.t2[0].id].has(c.t2[1].id)) cost += 15;
+        if (cost < minCost) {
+          minCost = cost;
+          best = { ...c, cost };
+        }
+      });
+
+      return best;
+    }
+
+    function recordPartners(t1, t2, partnerHistory) {
+      partnerHistory[t1[0].id].add(t1[1].id);
+      partnerHistory[t1[1].id].add(t1[0].id);
+      partnerHistory[t2[0].id].add(t2[1].id);
+      partnerHistory[t2[1].id].add(t2[0].id);
+    }
+
+    /* Render Results */
+    function renderScheduleView(validPlayers) {
+      const container = document.getElementById('roundList');
+      container.innerHTML = '';
+
+      const modeBadge = document.getElementById('modeBadge');
+      const viewTitle = document.getElementById('scheduleViewTitle');
+      const viewSubtitle = document.getElementById('scheduleViewSubtitle');
+      const totalBadge = document.getElementById('totalMatchesBadge');
+
+      if (currentMode === 'single') {
+        modeBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-sky-100 text-sky-800 border border-sky-300';
+        modeBadge.innerText = '🏸 單場地模式 (1面場)';
+        viewTitle.innerText = '🏟️ 單場地場次順序表';
+        viewSubtitle.innerText = '每場 4 人在場，已排定跨場零連打與輪空休息';
+        totalBadge.innerText = `共 ${scheduleData.length} 場對戰`;
+      } else {
+        modeBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300';
+        modeBadge.innerText = '⚡ 雙場地模式 (禁止連打)';
+        viewTitle.innerText = '🏟️ 雙場地輪次對戰表';
+        viewSubtitle.innerText = '每輪由場地 1 與場地 2 同步開打，嚴格落實跨輪禁止連續兩場出賽';
+        totalBadge.innerText = `共 ${scheduleData.length} 輪（${scheduleData.length * 2} 場對戰）`;
+      }
+
+      scheduleData.forEach((round, rIdx) => {
+        const roundCard = document.createElement('div');
+        roundCard.className = 'bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5';
+
+        const restingTags = round.restings.length > 0
+          ? round.restings.map(p => `<span class="inline-block text-[11px] px-2 py-0.5 bg-white text-slate-600 rounded-md border border-slate-200 font-medium">${escapeHtml(p.name)}</span>`).join(' ')
+          : '<span class="text-xs text-slate-400">無（全員出戰）</span>';
+
+        const warningBadge = round.warnings.length > 0
+          ? `<span class="text-[11px] text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300 font-bold flex items-center gap-1">
+               ⚠️ 連打：${escapeHtml(round.warnings.join('、'))}
+             </span>`
+          : `<span class="text-[11px] text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-300 font-bold">
+               ✨ 100% 零連打
+             </span>`;
+
+        let courtsHtml = '';
+        if (currentMode === 'single') {
+          courtsHtml = renderCourtCardHtml(rIdx, 0, round.courts[0], '單一球場');
+        } else {
+          courtsHtml = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              ${renderCourtCardHtml(rIdx, 0, round.courts[0], '場地 1')}
+              ${renderCourtCardHtml(rIdx, 1, round.courts[1], '場地 2')}
+            </div>
+          `;
+        }
+
+        roundCard.innerHTML = `
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-200/80 gap-2">
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <span class="px-3 py-1 ${currentMode === 'single' ? 'bg-sky-600' : 'bg-emerald-600'} text-white text-xs sm:text-sm font-extrabold rounded-xl shadow-xs">
+                ${currentMode === 'single' ? `第 ${round.roundNum} 場` : `第 ${round.roundNum} 輪`}
+              </span>
+              ${warningBadge}
+            </div>
+            <div class="flex items-center gap-1.5 text-xs text-slate-500">
+              <span class="text-slate-400 font-medium">輪空休息：</span>
+              <div class="flex items-center gap-1 flex-wrap">${restingTags}</div>
+            </div>
+          </div>
+          ${courtsHtml}
+        `;
+        container.appendChild(roundCard);
+      });
+    }
+
+    function renderCourtCardHtml(rIdx, cIdx, court, courtLabel) {
+      const isDone = court.completed;
+      const borderCol = court.courtNum === 1 ? 'border-sky-200' : 'border-purple-200';
+      const badgeCol = court.courtNum === 1 ? 'bg-sky-100 text-sky-800 border-sky-300' : 'bg-purple-100 text-purple-800 border-purple-300';
+
+      return `
+        <div id="courtCard_${rIdx}_${cIdx}" class="border rounded-xl p-3.5 transition-all bg-white ${isDone ? 'border-slate-200 bg-slate-100/70 opacity-60' : 'border-slate-200 hover:border-emerald-300 shadow-2xs'}">
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded-lg text-xs font-bold border ${badgeCol}">
+                ${courtLabel}
+              </span>
+              <span class="text-xs text-slate-400 font-medium">場次 #${rIdx * (currentMode === 'double' ? 2 : 1) + cIdx + 1}</span>
+            </div>
+
+            <label class="flex items-center gap-1.5 cursor-pointer bg-slate-50 hover:bg-slate-100 px-2 py-1 rounded-lg border border-slate-200 transition-colors shrink-0">
+              <input type="checkbox" class="custom-check w-3.5 h-3.5 cursor-pointer" 
+                ${isDone ? 'checked' : ''} 
+                onchange="toggleMatchCompleted(${rIdx}, ${cIdx}, this.checked)">
+              <span class="text-[11px] font-semibold ${isDone ? 'text-emerald-700 font-bold' : 'text-slate-600'}">
+                ${isDone ? '已完賽' : '確認完賽'}
+              </span>
+            </label>
+          </div>
+
+          <div class="space-y-2 mt-3 cursor-pointer" onclick="toggleMatchCompleted(${rIdx}, ${cIdx})">
+            <div class="flex items-center justify-between text-xs sm:text-sm font-semibold gap-2 ${isDone ? 'line-through text-slate-400' : 'text-slate-900'}">
+              <div class="flex-1 text-center py-2 px-2 rounded-xl bg-sky-50/70 border border-sky-100 font-bold">
+                ${escapeHtml(court.t1[0].name)} ＆ ${escapeHtml(court.t1[1].name)}
+              </div>
+              <span class="px-2 py-0.5 rounded text-[11px] font-black bg-rose-50 text-rose-600 border border-rose-200 shrink-0">VS</span>
+              <div class="flex-1 text-center py-2 px-2 rounded-xl bg-amber-50/70 border border-amber-100 font-bold">
+                ${escapeHtml(court.t2[0].name)} ＆ ${escapeHtml(court.t2[1].name)}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function toggleMatchCompleted(rIdx, cIdx, forceState = null) {
+      if (!scheduleData[rIdx] || !scheduleData[rIdx].courts[cIdx]) return;
+      const court = scheduleData[rIdx].courts[cIdx];
+      court.completed = (forceState !== null) ? forceState : !court.completed;
+
+      const card = document.getElementById(`courtCard_${rIdx}_${cIdx}`);
+      if (card) {
+        if (court.completed) {
+          card.classList.add('bg-slate-100/70', 'opacity-60');
+          card.querySelector('.space-y-2 > div').classList.add('line-through', 'text-slate-400');
+          card.querySelector('input[type="checkbox"]').checked = true;
+          card.querySelector('label span').innerText = '已完賽';
+          card.querySelector('label span').classList.add('text-emerald-700', 'font-bold');
+        } else {
+          card.classList.remove('bg-slate-100/70', 'opacity-60');
+          card.querySelector('.space-y-2 > div').classList.remove('line-through', 'text-slate-400');
+          card.querySelector('input[type="checkbox"]').checked = false;
+          card.querySelector('label span').innerText = '確認完賽';
+          card.querySelector('label span').classList.remove('text-emerald-700', 'font-bold');
+        }
+      }
+
+      const validPlayers = players.filter(p => p.name.trim().length > 0);
+      updateProgressAndStats(validPlayers);
+    }
+
+    function updateProgressAndStats(validPlayers) {
+      let totalMatches = 0;
+      let completedMatches = 0;
+
+      const doneCounts = {};
+      validPlayers.forEach(p => doneCounts[p.id] = 0);
+
+      scheduleData.forEach(round => {
+        round.courts.forEach(court => {
+          totalMatches++;
+          if (court.completed) {
+            completedMatches++;
+            court.t1.forEach(p => doneCounts[p.id] = (doneCounts[p.id] || 0) + 1);
+            court.t2.forEach(p => doneCounts[p.id] = (doneCounts[p.id] || 0) + 1);
+          }
+        });
+      });
+
+      const pct = totalMatches > 0 ? Math.round((completedMatches / totalMatches) * 100) : 0;
+      document.getElementById('progressSummaryText').innerText = `${completedMatches} / ${totalMatches} 場`;
+      document.getElementById('progressPercentText').innerText = `${pct}%`;
+      document.getElementById('progressBarFill').style.width = `${pct}%`;
+
+      const tbody = document.getElementById('playerStatsBody');
+      tbody.innerHTML = '';
+
+      const idToPlayer = {};
+      validPlayers.forEach(p => idToPlayer[p.id] = p);
+
+      validPlayers.forEach(p => {
+        const totalP = playerStatsMeta.playCounts ? playerStatsMeta.playCounts[p.id] || 0 : 0;
+        const doneP = doneCounts[p.id] || 0;
+        const remainP = Math.max(0, totalP - doneP);
+        const b2bP = playerStatsMeta.consecutivePlays ? playerStatsMeta.consecutivePlays[p.id] || 0 : 0;
+
+        let partnerNames = [];
+        if (playerStatsMeta.partnerHistory && playerStatsMeta.partnerHistory[p.id]) {
+          partnerNames = Array.from(playerStatsMeta.partnerHistory[p.id]).map(id => idToPlayer[id] ? idToPlayer[id].name : id);
+        }
+
+        const partnerTags = partnerNames.length > 0
+          ? partnerNames.map(name => `<span class="inline-block text-[11px] px-1.5 py-0.5 bg-slate-100 rounded text-slate-600 mr-1 mb-1 font-medium">${escapeHtml(name)}</span>`).join('')
+          : '<span class="text-slate-400 text-xs">無</span>';
+
+        const b2bDisplay = b2bP > 0
+          ? `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">${b2bP} 次</span>`
+          : `<span class="text-emerald-600 font-bold text-xs">0 次 (零連打)</span>`;
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition-colors';
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 sm:px-4 font-bold text-slate-800">${escapeHtml(p.name)}</td>
+          <td class="py-2.5 px-2 sm:px-3 text-center font-bold text-slate-800">${totalP} 場</td>
+          <td class="py-2.5 px-2 sm:px-3 text-center font-bold text-emerald-600">${doneP} 場</td>
+          <td class="py-2.5 px-2 sm:px-3 text-center font-bold ${remainP > 0 ? 'text-amber-600' : 'text-slate-400'}">${remainP} 場</td>
+          <td class="py-2.5 px-2 sm:px-3 text-center">${b2bDisplay}</td>
+          <td class="py-2.5 px-3 sm:px-4">${partnerTags}</td>
+          <td class="py-2.5 px-2 sm:px-3 text-center">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              ✓ 次數平衡
+            </span>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function copyScheduleToLine() {
+      if (!scheduleData || scheduleData.length === 0) return;
+
+      let text = '';
+      if (currentMode === 'single') {
+        text += `🏸 【羽球雙打對戰賽程表 - 單場地】\n`;
+        text += `版次：V2.4.0 (無固定分組) ｜ 更新：2026-10-16\n`;
+        text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+
+        scheduleData.forEach(item => {
+          const restingNames = item.restings.map(p => p.name).join('、') || '無';
+          const court = item.courts[0];
+          const status = court.completed ? '✅已完賽' : '⏳待打';
+          text += `【第 ${item.roundNum} 場】[${status}]\n`;
+          text += ` ▸ 對戰：${court.t1[0].name} & ${court.t1[1].name} VS ${court.t2[0].name} & ${court.t2[1].name}\n`;
+          text += ` ▸ 輪空休息：${restingNames}\n`;
+          text += `─────────────────────\n`;
+        });
+      } else {
+        text += `⚡ 【羽球雙打對戰賽程表 - 雙場地零連打】\n`;
+        text += `版次：V2.4.0 (無固定分組) ｜ 更新：2026-10-16\n`;
+        text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+
+        scheduleData.forEach(round => {
+          const restingNames = round.restings.map(p => p.name).join('、') || '無';
+          const c1 = round.courts[0];
+          const c2 = round.courts[1];
+          const c1Status = c1.completed ? '✅已完' : '⏳待打';
+          const c2Status = c2.completed ? '✅已完' : '⏳待打';
+
+          text += `【第 ${round.roundNum} 輪】(雙場地同步)\n`;
+          text += ` ▸ [場地 1] [${c1Status}] ${c1.t1[0].name} & ${c1.t1[1].name} VS ${c1.t2[0].name} & ${c1.t2[1].name}\n`;
+          text += ` ▸ [場地 2] [${c2Status}] ${c2.t1[0].name} & ${c2.t1[1].name} VS ${c2.t2[0].name} & ${c2.t2[1].name}\n`;
+          text += ` ▸ 輪空休息：${restingNames}\n`;
+          text += `─────────────────────\n`;
+        });
+      }
+
+      text += `排程機制：嚴格禁止連續兩場出賽・搭檔多樣性最佳化！`;
+
+      const tempTextArea = document.createElement('textarea');
+      tempTextArea.value = text;
+      document.body.appendChild(tempTextArea);
+      tempTextArea.select();
+      try {
+        document.execCommand('copy');
+        showToast('賽程文字已成功複製！可直接前往 LINE 群組貼上');
+      } catch (err) {
+        showToast('複製失敗，請手動選取文字');
+      }
+      document.body.removeChild(tempTextArea);
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMessage').innerText = msg;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 2500);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      init();
+    });
+  </script>
+</body>
+</html>
